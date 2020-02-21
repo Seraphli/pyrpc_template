@@ -1,4 +1,4 @@
-import multiprocessing as mp
+from threading import Thread
 
 from thrift.protocol import TBinaryProtocol
 from thrift.transport import TTransport
@@ -18,16 +18,17 @@ class Handler(object):
         return __version__
 
 
-class ServerProc(mp.Process):
+class ServerThread(Thread):
     def __init__(self, port):
-        super(ServerProc, self).__init__()
+        super(ServerThread, self).__init__()
         self.daemon = True
         self.host = '0.0.0.0'
         self.port = port
+        self.handler = None
 
     def run(self):
-        handler = Handler()
-        processor = server.Processor(handler)
+        self.handler = Handler()
+        processor = server.Processor(self.handler)
         transport = TSocket.TServerSocket(self.host, self.port)
         tfactory = TTransport.TBufferedTransportFactory()
         pfactory = TBinaryProtocol.TBinaryProtocolFactory()
@@ -46,8 +47,8 @@ class Server(object):
 
     def start(self):
         import time
-        self.server_proc = ServerProc(self.port)
-        self.server_proc.start()
+        self.server_thread = ServerThread(self.port)
+        self.server_thread.start()
         time.sleep(0.5)
         while True:
             cmd = input()
